@@ -1,48 +1,46 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 //load 3d object
 //axios로 가져오기
-  const ThreeDCubeRender = ({ threeDObject }) => {
+const ThreeDCubeRender = ({ threeDObject }) => {
 
     const viewer = useRef();
-    
+    let renderer;
+    let scene;
+    let camera;
+
     useEffect(() => {
-        objectLoade(threeDObject);
-    }, [threeDObject]);
+        init();
+        load(threeDObject);
+        return () => {
+            viewer.current.removeChild(renderer.domElement);
+        };
+    },[threeDObject]);
 
-    const objectLoade = (currentObject) => {
-        //3dObject========================================
-        const objectFilePath = window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/asset/models/' + currentObject.objectFile.id + "/";
-        const objFileName = currentObject.objectFile.obj;
-        const mtlFileName = currentObject.objectFile.mtl;
-
+    const init = () => {
         //camera의 위치
         const cameraPosition = [-30, 40, 50];
         //object가 바라보는 방향
-        const objectRotationXYZ = [0, 0, 0];
+
         //init
-        const WIDTH = window.innerWidth;
+        const WIDTH = window.innerWidth * 0.5;
         const HEIGHT = window.innerHeight;
         
         //rendering init
-        const renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            logarithmicDepthBuffer: true,
-            alpha: true,
-        });
+        renderer = new THREE.WebGLRenderer({viewer});
         renderer.setSize(WIDTH, HEIGHT);
         viewer.current.appendChild( renderer.domElement );
-        
+
         //scene init
-        const scene = new THREE.Scene();
+        scene = new THREE.Scene();
         scene.background = new THREE.Color(0xd7d7d7);
         
         //camera init
-        const camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, 0.1, 10000);
+        camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, 0.1, 10000);
         camera.position.x = cameraPosition[0];
         camera.position.y = cameraPosition[1];
         camera.position.z = cameraPosition[2];
@@ -63,12 +61,26 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
         scene.add(light);
 
         //material init
+
+        const animate = () => {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+            controls.update();
+        };
+        animate();
+    };
+
+    const load = (currentObject) =>{
+        const objectFilePath = window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/asset/models/' + currentObject.id + "/";
+        const objFileName = currentObject.obj;
+        const mtlFileName = currentObject.mtl;        //material init
+
         const mtlLoader = new MTLLoader();
 
         // MTLLoader Material 파일을 사용할 전역 경로를 설정합니다.
         mtlLoader.setPath(objectFilePath);
         
-         // 로드할 Material 파일 명을 입력합니다.
+        // 로드할 Material 파일 명을 입력합니다.
         mtlLoader.load(
             mtlFileName,
             function (materials) {
@@ -89,6 +101,8 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
             }
         );
 
+        const objectRotationXYZ = [0, 0, 0];
+
         //최종적으로 object load후 rendering 하는 함수
         const loadOBJLoader = (materials) => {
             //object init
@@ -98,6 +112,7 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
             objLoader.load(
             objFileName,
             (result) => {
+
                 //position 지정하기
                 let cent = new THREE.Vector3();
                 let size = new THREE.Vector3();
@@ -113,7 +128,7 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
                 //z 크기의 2배 (전체화면의 반정도 차게 카메라 이동)
                 camera.position.z = boxSize.z * 2;
 
-               // bind3dResizeEvent(renderer);
+            // bind3dResizeEvent(renderer);
 
                 //rotation 지정하기
                 result.rotation.x = objectRotationXYZ[0];
@@ -122,7 +137,7 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 
                 //로딩된 객체에 재질 입혀주고 rendering하기
                 scene.add(result);
-                animate();
+                //animate();
 
                 console.log('object 객체 로딩완료');
             },
@@ -141,20 +156,15 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
             }
             );
         };
-
-
-        const animate = () => {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-            controls.update();
-        };
-        animate();
-
     };
 
-      return(
-          <div><div ref={viewer} /></div>
-      );
-    };
+    return(
+        <div>
+            <div ref= {viewer}>
+                {/* <Viewer scene={scene} camera={camera} object={threeDObject} ></Viewer> */}
+            </div>
+        </div>
+    );
+};
 
   export default ThreeDCubeRender
